@@ -31,6 +31,9 @@ LB_TARGET_TYPE="${LB_TARGET_TYPE:-ip}"
 CERT_EMAIL="${CERT_EMAIL:-}"
 ENABLE_SECRETS_MANAGER="${ENABLE_SECRETS_MANAGER:-true}"
 ENABLE_CERT_MANAGER="${ENABLE_CERT_MANAGER:-false}"
+USE_ACM="${USE_ACM:-false}"
+ACM_CERT_ARN="${ACM_CERT_ARN:-}"
+N8N_DOMAIN="${N8N_DOMAIN:-}"
 
 # Display help
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
@@ -55,6 +58,9 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
     echo "  ENABLE_SECRETS_MANAGER    Use AWS Secrets Manager (default: true)"
     echo "  ENABLE_CERT_MANAGER       Install cert-manager (default: false)"
     echo "  CERT_EMAIL                Email for Let's Encrypt certificates"
+    echo "  USE_ACM                   Use AWS Certificate Manager (default: false)"
+    echo "  ACM_CERT_ARN              ACM certificate ARN (required if USE_ACM=true)"
+    echo "  N8N_DOMAIN                Domain name for n8n"
     echo ""
     echo "Examples:"
     echo "  ./deploy.sh"
@@ -226,6 +232,22 @@ export LB_SCHEME LB_TYPE LB_CROSS_ZONE LB_TARGET_TYPE
 envsubst < "${MANIFEST_DIR}/07-n8n-service.yaml" | kubectl apply -f -
 
 kubectl apply -f "${MANIFEST_DIR}/08-hpa.yaml"
+
+# Apply ingress based on certificate method
+if [ "$USE_ACM" = "true" ]; then
+    if [ -z "$ACM_CERT_ARN" ]; then
+        log_warning "USE_ACM=true but ACM_CERT_ARN not set, skipping ingress"
+    else
+        log_info "Applying ingress with ACM certificate..."
+        export ACM_CERT_ARN N8N_DOMAIN LB_SCHEME
+        envsubst < "${MANIFEST_DIR}/tls/ingress-acm.yaml" | kubectl apply -f -
+    fi
+elif [ "$ENABLE_CERT_MANAGER" = "true" ]; then
+    log_info "Applying ingress with cert-manager..."
+    kubectl apply -f "${MANIFEST_DIR}/09-ingress.yaml"
+else
+    log_info "Skipping ingress (no TLS configured)"
+fi
 
 # Wait for deployments
 log_info "Waiting for deployments..."
