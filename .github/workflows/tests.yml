@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master, feature/* ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install bats
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats
+    
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+    
+    - name: Verify installations
+      run: |
+        bats --version
+        kubectl version --client
+    
+    - name: Run tests
+      run: bats tests/
+    
+    - name: Test summary
+      if: always()
+      run: |
+        echo "Test execution completed"
+        echo "Check logs above for results"
