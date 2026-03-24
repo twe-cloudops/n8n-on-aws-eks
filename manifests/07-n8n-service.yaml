@@ -6,8 +6,13 @@ metadata:
   labels:
     app: n8n-simple
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-type: "${LB_TYPE:-nlb}"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "${LB_SCHEME:-internet-facing}"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "${LB_CROSS_ZONE:-true}"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "${LB_TARGET_TYPE:-ip}"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "5678"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/healthz"
 spec:
   type: LoadBalancer
   ports:

@@ -5,20 +5,32 @@ metadata:
   name: n8n-cluster
   region: us-east-1  # Default region, override with REGION env var
 
+# VPC Configuration
+vpc:
+  # Use existing VPC (set VPC_ID env var) or create new
+  cidr: "10.0.0.0/16"  # Override with VPC_CIDR env var
+  
+  # NAT Gateway configuration
+  nat:
+    gateway: Single  # Override with NAT_GATEWAY env var (Disable, Single, HighlyAvailable)
+  
+  # Cluster endpoints
+  clusterEndpoints:
+    publicAccess: true   # Override with PUBLIC_ACCESS env var
+    privateAccess: true  # Override with PRIVATE_ACCESS env var
+
 nodeGroups:
   - name: n8n-workers
-    instanceType: t3.medium
-    desiredCapacity: 2
-    minSize: 1
-    maxSize: 4
+    instanceType: t3.medium  # Override with INSTANCE_TYPE env var
+    desiredCapacity: 2       # Override with DESIRED_CAPACITY env var
+    minSize: 1               # Override with MIN_SIZE env var
+    maxSize: 4               # Override with MAX_SIZE env var
     ssh:
       allow: false
     iam:
       withAddonPolicies:
         ebs: true
         cloudWatch: true
-
-# Disable NAT gateway to avoid EIP limits
-vpc:
-  nat:
-    gateway: Disable
+    volumeSize: 50
+    volumeType: gp3
+    volumeEncrypted: true

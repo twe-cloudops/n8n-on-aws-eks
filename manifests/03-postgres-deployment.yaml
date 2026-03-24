@@ -15,11 +15,24 @@ spec:
       labels:
         app: postgres-simple
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: postgres
         image: postgres:15-alpine
         ports:
         - containerPort: 5432
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
         env:
         - name: POSTGRES_USER
           valueFrom:
@@ -41,6 +54,10 @@ spec:
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
+        - name: tmp
+          mountPath: /tmp
+        - name: run
+          mountPath: /var/run/postgresql
         resources:
           requests:
             memory: "512Mi"
@@ -72,3 +89,7 @@ spec:
       - name: postgres-storage
         persistentVolumeClaim:
           claimName: postgres-pvc
+      - name: tmp
+        emptyDir: {}
+      - name: run
+        emptyDir: {}

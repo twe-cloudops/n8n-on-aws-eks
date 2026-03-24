@@ -1,15 +1,10 @@
 #!/bin/bash
-# Deploy n8n on AWS EKS
+# Deploy n8n on AWS EKS with enhanced security and custom VPC support
 # Usage: ./deploy.sh [options]
-#   CLUSTER_NAME: Name of the EKS cluster (default: n8n-cluster)
-#   REGION: AWS region (default: us-east-1)
-#   AWS_PROFILE: AWS CLI profile (default: default)
 
 set -euo pipefail
 
-# Get script directory for sourcing common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/common.sh
 source "${SCRIPT_DIR}/common.sh"
 
 # Configuration
@@ -17,27 +12,65 @@ CLUSTER_NAME="${CLUSTER_NAME:-n8n-cluster}"
 REGION="${REGION:-us-east-1}"
 AWS_PROFILE="${AWS_PROFILE:-default}"
 
-# Display help message
+# VPC Configuration
+VPC_ID="${VPC_ID:-}"
+VPC_CIDR="${VPC_CIDR:-10.0.0.0/16}"
+NAT_GATEWAY="${NAT_GATEWAY:-Single}"
+PUBLIC_ACCESS="${PUBLIC_ACCESS:-true}"
+PRIVATE_ACCESS="${PRIVATE_ACCESS:-true}"
+PRIVATE_SUBNETS="${PRIVATE_SUBNETS:-}"
+PUBLIC_SUBNETS="${PUBLIC_SUBNETS:-}"
+
+# Load Balancer Configuration
+LB_SCHEME="${LB_SCHEME:-internet-facing}"
+LB_TYPE="${LB_TYPE:-nlb}"
+LB_CROSS_ZONE="${LB_CROSS_ZONE:-true}"
+LB_TARGET_TYPE="${LB_TARGET_TYPE:-ip}"
+
+# Security Configuration
+CERT_EMAIL="${CERT_EMAIL:-}"
+ENABLE_SECRETS_MANAGER="${ENABLE_SECRETS_MANAGER:-true}"
+ENABLE_CERT_MANAGER="${ENABLE_CERT_MANAGER:-false}"
+
+# Display help
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
-    show_usage "$(basename "$0")" "[CLUSTER_NAME=name] [REGION=region] [AWS_PROFILE=profile]"
-    echo "Options:"
-    echo "  CLUSTER_NAME    Name of the EKS cluster (default: n8n-cluster)"
-    echo "  REGION          AWS region (default: us-east-1)"
-    echo "  AWS_PROFILE     AWS CLI profile (default: default)"
+    show_usage "$(basename "$0")" "[options]"
+    echo "Environment Variables:"
+    echo "  CLUSTER_NAME              Cluster name (default: n8n-cluster)"
+    echo "  REGION                    AWS region (default: us-east-1)"
+    echo "  AWS_PROFILE               AWS profile (default: default)"
+    echo ""
+    echo "VPC Options:"
+    echo "  VPC_ID                    Existing VPC ID (creates new if empty)"
+    echo "  VPC_CIDR                  VPC CIDR (default: 10.0.0.0/16)"
+    echo "  NAT_GATEWAY               NAT mode: Disable/Single/HighlyAvailable"
+    echo "  PRIVATE_SUBNETS           Comma-separated private subnet IDs"
+    echo "  PUBLIC_SUBNETS            Comma-separated public subnet IDs"
+    echo ""
+    echo "Load Balancer Options:"
+    echo "  LB_SCHEME                 internet-facing or internal (default: internet-facing)"
+    echo "  LB_TYPE                   nlb or alb (default: nlb)"
+    echo ""
+    echo "Security Options:"
+    echo "  ENABLE_SECRETS_MANAGER    Use AWS Secrets Manager (default: true)"
+    echo "  ENABLE_CERT_MANAGER       Install cert-manager (default: false)"
+    echo "  CERT_EMAIL                Email for Let's Encrypt certificates"
     echo ""
     echo "Examples:"
     echo "  ./deploy.sh"
-    echo "  REGION=us-west-2 ./deploy.sh"
-    echo "  CLUSTER_NAME=prod-n8n REGION=eu-west-1 AWS_PROFILE=production ./deploy.sh"
+    echo "  VPC_ID=vpc-xxx PRIVATE_SUBNETS=subnet-111,subnet-222 ./deploy.sh"
+    echo "  LB_SCHEME=internal ./deploy.sh"
     exit 0
 fi
 
-print_header "🚀 n8n EKS Deployment"
+print_header "🚀 n8n EKS Deployment (Enhanced)"
 
 log_info "Configuration:"
 echo "   Cluster: $CLUSTER_NAME"
 echo "   Region: $REGION"
-echo "   Profile: $AWS_PROFILE"
+echo "   VPC: ${VPC_ID:-new}"
+echo "   LB Scheme: $LB_SCHEME"
+echo "   Secrets Manager: $ENABLE_SECRETS_MANAGER"
 echo ""
 
 # Check prerequisites
@@ -45,59 +78,168 @@ log_info "Checking prerequisites..."
 check_prerequisites aws kubectl eksctl || error_exit "Prerequisites check failed"
 log_success "All required commands are available"
 
-# Validate AWS credentials
+# Validate AWS
 log_info "Validating AWS credentials..."
 validate_aws_credentials "$AWS_PROFILE" || error_exit "AWS credentials validation failed"
-log_success "AWS credentials validated"
-
-# Validate AWS region
-log_info "Validating AWS region..."
 validate_aws_region "$REGION" || error_exit "AWS region validation failed"
-log_success "AWS region validated"
+log_success "AWS validated"
 
-# Check if cluster already exists
+# Check cluster exists
 if check_cluster_exists "$CLUSTER_NAME" "$REGION" "$AWS_PROFILE"; then
-    error_exit "Cluster '$CLUSTER_NAME' already exists in region '$REGION'. Please use a different name or delete the existing cluster."
+    error_exit "Cluster '$CLUSTER_NAME' already exists"
 fi
 
-# Validate manifest files exist
-log_info "Validating manifest files..."
 MANIFEST_DIR="${SCRIPT_DIR}/../manifests"
-if [ ! -d "$MANIFEST_DIR" ]; then
-    error_exit "Manifests directory not found: $MANIFEST_DIR"
-fi
-log_success "Manifest directory found"
 
-# Create cluster config dynamically
+# VPC Configuration
+log_info "Configuring VPC..."
+if [ -n "$VPC_ID" ]; then
+    log_info "Using existing VPC: $VPC_ID"
+    VPC_CONFIG="id: \"$VPC_ID\""
+    if [ -z "$PRIVATE_SUBNETS" ]; then
+        PRIVATE_SUBNETS=$(aws ec2 describe-subnets --region "$REGION" --profile "$AWS_PROFILE" \
+            --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*private*" \
+            --query 'Subnets[*].SubnetId' --output text | tr '\t' ',')
+    fi
+    NODE_SUBNETS="$PRIVATE_SUBNETS"
+else
+    log_info "Creating new VPC with CIDR: $VPC_CIDR"
+    VPC_CONFIG="cidr: \"$VPC_CIDR\""
+    NODE_SUBNETS="private"
+fi
+
+# Create cluster config
 cat > /tmp/cluster.yaml <<EOF
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
-
 metadata:
   name: $CLUSTER_NAME
   region: $REGION
-
+vpc:
+  $VPC_CONFIG
+  nat:
+    gateway: $NAT_GATEWAY
+  clusterEndpoints:
+    publicAccess: $PUBLIC_ACCESS
+    privateAccess: $PRIVATE_ACCESS
 nodeGroups:
   - name: n8n-workers
     instanceType: t3.medium
     desiredCapacity: 2
     minSize: 1
     maxSize: 4
+    subnets: [$NODE_SUBNETS]
     ssh:
       allow: false
     iam:
       withAddonPolicies:
         ebs: true
         cloudWatch: true
-        imageBuilder: true
     volumeSize: 50
     volumeType: gp3
     volumeEncrypted: true
+EOF
 
-vpc:
-  nat:
-    gateway: Single  # Use NAT gateway for better reliability
-  cidr: "10.0.0.0/16"
+log_info "Creating EKS cluster..."
+eksctl create cluster --config-file=/tmp/cluster.yaml --profile "$AWS_PROFILE" || error_exit "Cluster creation failed"
+log_success "Cluster created"
+
+# Update kubeconfig
+aws eks update-kubeconfig --region "$REGION" --name "$CLUSTER_NAME" --profile "$AWS_PROFILE"
+
+# Install EBS CSI driver
+log_info "Installing EBS CSI driver..."
+aws eks create-addon --cluster-name "$CLUSTER_NAME" --addon-name aws-ebs-csi-driver \
+    --region "$REGION" --profile "$AWS_PROFILE" 2>/dev/null || log_warning "EBS CSI addon may exist"
+sleep 30
+
+# Create storage class
+kubectl apply -f - <<EOF
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+volumeBindingMode: WaitForFirstConsumer
+EOF
+
+# Install External Secrets Operator
+if [ "$ENABLE_SECRETS_MANAGER" = "true" ]; then
+    log_info "Installing External Secrets Operator..."
+    kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/main/deploy/crds/bundle.yaml
+    kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/main/deploy/external-secrets.yaml
+    kubectl wait --for=condition=available --timeout=300s deployment/external-secrets -n external-secrets-system
+    
+    # Create secret in AWS
+    DB_PASSWORD=$(openssl rand -base64 32)
+    aws secretsmanager create-secret --name n8n/postgres-credentials \
+        --secret-string "{\"username\":\"n8nuser\",\"password\":\"${DB_PASSWORD}\",\"database\":\"n8n\"}" \
+        --region "$REGION" --profile "$AWS_PROFILE" 2>/dev/null || \
+    aws secretsmanager update-secret --secret-id n8n/postgres-credentials \
+        --secret-string "{\"username\":\"n8nuser\",\"password\":\"${DB_PASSWORD}\",\"database\":\"n8n\"}" \
+        --region "$REGION" --profile "$AWS_PROFILE"
+    
+    # Create IAM service account
+    eksctl create iamserviceaccount --name external-secrets --namespace external-secrets-system \
+        --cluster "$CLUSTER_NAME" --region "$REGION" \
+        --attach-policy-arn "arn:aws:iam::aws:policy/SecretsManagerReadWrite" \
+        --approve --profile "$AWS_PROFILE" || log_warning "Service account may exist"
+    
+    log_success "Secrets Manager configured"
+fi
+
+# Install cert-manager
+if [ "$ENABLE_CERT_MANAGER" = "true" ]; then
+    log_info "Installing cert-manager..."
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+    kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
+    
+    if [ -n "$CERT_EMAIL" ]; then
+        envsubst < "${MANIFEST_DIR}/tls/cluster-issuer-prod.yaml" | kubectl apply -f -
+        log_success "cert-manager installed"
+    fi
+fi
+
+# Deploy manifests
+log_info "Deploying n8n..."
+kubectl apply -f "${MANIFEST_DIR}/00-namespace.yaml"
+
+if [ "$ENABLE_SECRETS_MANAGER" = "true" ]; then
+    envsubst < "${MANIFEST_DIR}/secrets/secret-store.yaml" | kubectl apply -f -
+    kubectl apply -f "${MANIFEST_DIR}/secrets/postgres-external-secret.yaml"
+    kubectl wait --for=condition=Ready --timeout=60s externalsecret/postgres-credentials -n n8n
+else
+    kubectl apply -f "${MANIFEST_DIR}/01-postgres-secret.yaml"
+fi
+
+kubectl apply -f "${MANIFEST_DIR}/02-persistent-volumes.yaml"
+kubectl apply -f "${MANIFEST_DIR}/03-postgres-deployment.yaml"
+kubectl apply -f "${MANIFEST_DIR}/04-postgres-service.yaml"
+kubectl apply -f "${MANIFEST_DIR}/05-network-policy.yaml"
+kubectl apply -f "${MANIFEST_DIR}/06-n8n-deployment.yaml"
+
+# Apply service with env substitution
+export LB_SCHEME LB_TYPE LB_CROSS_ZONE LB_TARGET_TYPE
+envsubst < "${MANIFEST_DIR}/07-n8n-service.yaml" | kubectl apply -f -
+
+kubectl apply -f "${MANIFEST_DIR}/08-hpa.yaml"
+
+# Wait for deployments
+log_info "Waiting for deployments..."
+kubectl wait --for=condition=available --timeout=600s deployment/postgres-simple -n n8n 2>/dev/null || log_warning "PostgreSQL still initializing"
+kubectl wait --for=condition=available --timeout=600s deployment/n8n-simple -n n8n 2>/dev/null || log_warning "n8n still initializing"
+
+echo ""
+log_success "Deployment complete!"
+kubectl get pods -n n8n
+echo ""
+kubectl get services -n n8n
+
+rm -f /tmp/cluster.yaml
+log_success "Setup completed!"
 
 addons:
   - name: vpc-cni

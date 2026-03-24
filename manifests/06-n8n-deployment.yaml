@@ -15,10 +15,26 @@ spec:
       labels:
         app: n8n-simple
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
       - name: volume-permissions
         image: busybox:1.36
-        command: ["sh", "-c", "chown -R 1000:1000 /home/node/.n8n"]
+        command: ["sh", "-c", "chmod 777 /home/node/.n8n"]
+        securityContext:
+          runAsUser: 0
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - CHOWN
+            - FOWNER
         volumeMounts:
         - name: n8n-storage
           mountPath: /home/node/.n8n
@@ -34,6 +50,12 @@ spec:
         image: n8nio/n8n:latest
         ports:
         - containerPort: 5678
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
         env:
         - name: DB_TYPE
           value: postgresdb
@@ -67,6 +89,8 @@ spec:
         volumeMounts:
         - name: n8n-storage
           mountPath: /home/node/.n8n
+        - name: tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "512Mi"
@@ -94,3 +118,5 @@ spec:
       - name: n8n-storage
         persistentVolumeClaim:
           claimName: n8n-pvc
+      - name: tmp
+        emptyDir: {}
