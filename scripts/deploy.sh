@@ -31,7 +31,7 @@ LB_TARGET_TYPE="${LB_TARGET_TYPE:-ip}"
 ECR_ACCOUNT_ID="${ECR_ACCOUNT_ID:-}"
 ECR_REGION="${ECR_REGION:-${REGION}}"
 N8N_IMAGE="${N8N_IMAGE:-n8nio/n8n:latest}"
-POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-alpine}"
+POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-bookworm}"
 
 # Security Configuration
 CERT_EMAIL="${CERT_EMAIL:-}"
