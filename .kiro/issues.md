@@ -1,7 +1,7 @@
 # n8n-on-AWS-EKS Issues & Troubleshooting Tracker
 
 **Created**: 2026-03-25T09:32:37+11:00
-**Last Updated**: 2026-03-25T13:34:00+11:00
+**Last Updated**: 2026-03-25T15:58:00+11:00
 
 ## Status Legend
 - 🔴 **Critical** - Blocks deployment or major security risk
@@ -10,44 +10,260 @@
 - 🟢 **Low** - Nice to have improvements
 - ✅ **Fixed** - Issue resolved
 - 🚧 **In Progress** - Currently being worked on
+- 📋 **Backlog** - Planned for future
 
 ---
 
-## 🎉 DEPLOYMENT COMPLETE - ALL BLOCKERS RESOLVED
+## 🎉 ALL CRITICAL ISSUES RESOLVED
 
 **Status**: ✅ Production Ready  
-**Date**: 2026-03-25  
-**URL**: https://n8n-cluster.001.enc-test-shared.enc-test.twecloud.com  
+**Deployments**: enc-test, entapps-npe  
 **Branch**: feature/critical-fixes-and-enhancements
 
 ---
 
-## Resolved Critical Issues
+## Open Issues (Non-Blocking)
 
-### ISSUE-000: Container Image Pull Failure in Private Subnets
-**Severity**: 🔴 Critical (Deployment Blocker)
-**Status**: ✅ Fixed (2026-03-25)
-**Discovered**: 2026-03-25 11:09
-**Resolved**: 2026-03-25 12:45
-**Environment**: enc-test account (308100948908), ap-southeast-2
+### ISSUE-017: Node Proxy Configuration at Cluster Creation
+**Severity**: 🟡 Medium
+**Status**: 📋 Backlog
+**Created**: 2026-03-25
 
 **Problem**:
-EKS nodes in private subnets cannot pull container images from public registries (Docker Hub). Both postgres:15-alpine and n8nio/n8n:latest failing with ImagePullBackOff.
+Proxy configuration for EKS nodes (containerd, kubelet) cannot be applied post-deployment due to chicken-and-egg problem (nodes need proxy to pull images for DaemonSet that configures proxy).
 
-**Root Cause**:
-- Nodes in private subnets: subnet-098c9a37ff83b4869, subnet-0a34ca141f76e8f2f, subnet-0e80caee7641da7b0
-- Proxy (http://10.122.108.59:8080) not configured for container runtime
-- No VPC endpoints for ECR
-- Public registry access blocked
+**Current Workaround**:
+- Using internal ECR (no internet needed for image pulls)
+- n8n pod has proxy configured (works for application)
 
-**Solution Implemented**:
-1. ✅ Configured internal ECR (993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub)
-2. ✅ Updated manifests to use ECR images
-3. ✅ Updated scripts/deploy.sh with ECR defaults
-4. ✅ Images: n8n:2.11.0, postgres:16.6
-5. ✅ Pods running successfully
+**Proper Solution**:
+Add proxy configuration to eksctl cluster config via `preBootstrapCommands`:
+```yaml
+managedNodeGroups:
+  - name: workers
+    preBootstrapCommands:
+      - |
+        mkdir -p /etc/systemd/system/containerd.service.d
+        cat > /etc/systemd/system/containerd.service.d/http-proxy.conf <<EOF
+        [Service]
+        Environment="HTTP_PROXY=http://10.122.108.59:8080"
+        Environment="HTTPS_PROXY=http://10.122.108.59:8080"
+        Environment="NO_PROXY=localhost,127.0.0.1,169.254.169.254,.internal,.svc,.svc.cluster.local,VPC_CIDR,.amazonaws.com"
+        EOF
+        systemctl daemon-reload
+        systemctl restart containerd
+```
 
-**Files Modified**:
+**Impact**: Low - current setup works with ECR
+
+**Assigned**: Unassigned  
+**Target**: Future enhancement
+
+---
+
+### ISSUE-018: Community Edition Registration Not Automated
+**Severity**: 🟢 Low
+**Status**: 📋 Backlog (Cannot Fix)
+**Created**: 2026-03-25
+
+**Problem**:
+n8n community edition registration requires manual acceptance of terms through UI. Cannot be automated via environment variables or API.
+
+**Current Workaround**:
+- Documented in `.kiro/POST-DEPLOYMENT-STEPS.md`
+- One-time manual step
+- Registration stored in RDS (persists)
+
+**Proper Solution**:
+None - this is by design in n8n (legal requirement to accept terms)
+
+**Impact**: Low - one-time manual step, well documented
+
+**Assigned**: N/A (Cannot be automated)  
+**Status**: Documented
+
+---
+
+### ISSUE-019: No Persistent Storage for n8n Config
+**Severity**: 🟡 Medium
+**Status**: 📋 Backlog
+**Created**: 2026-03-25
+
+**Problem**:
+n8n deployment uses `emptyDir` for `/home/node/.n8n` directory. n8n settings (not workflows) are lost on pod restart.
+
+**Current Workaround**:
+- Workflows stored in RDS (persistent)
+- Most important data is safe
+- Settings can be reconfigured if needed
+
+**Proper Solution**:
+Add EFS or EBS persistent volume:
+```yaml
+volumes:
+  - name: n8n-storage
+    persistentVolumeClaim:
+      claimName: n8n-config-pvc
+```
+
+**Impact**: Medium - settings lost on pod restart (workflows safe)
+
+**Assigned**: Unassigned  
+**Target**: Next quarter  
+**See**: `.kiro/NEXT-STEPS.md` #6
+
+---
+
+### ISSUE-020: Single n8n Pod (No HA)
+**Severity**: 🟡 Medium
+**Status**: 📋 Backlog
+**Created**: 2026-03-25
+
+**Problem**:
+n8n deployment runs single replica. No high availability.
+
+**Current Workaround**:
+- RDS provides database HA (Multi-AZ in prod)
+- Pod restarts quickly if it fails
+- Acceptable for most use cases
+
+**Proper Solution**:
+1. Scale to multiple replicas
+2. Add pod anti-affinity
+3. Configure session affinity on ALB
+4. Test multi-pod workflow execution
+
+**Impact**: Medium - brief downtime during pod restarts
+
+**Assigned**: Unassigned  
+**Target**: When HA required  
+**See**: `.kiro/NEXT-STEPS.md` #10
+
+---
+
+### ISSUE-021: Manual NLB/ALB Creation
+**Severity**: 🟢 Low
+**Status**: 📋 Backlog
+**Created**: 2026-03-25
+
+**Problem**:
+ALB created manually via script instead of Kubernetes service. Not managed by Kubernetes.
+
+**Current Workaround**:
+- Automated via `scripts/create-alb-https.sh`
+- Works reliably
+- Well documented
+
+**Proper Solution**:
+Install AWS Load Balancer Controller:
+```bash
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=n8n-cluster
+```
+
+Then use Ingress or service annotations.
+
+**Impact**: Low - current approach works well
+
+**Assigned**: Unassigned  
+**Target**: Future enhancement
+
+---
+
+### ISSUE-022: No Automated Monitoring Setup
+**Severity**: 🟡 Medium
+**Status**: 📋 Backlog
+**Created**: 2026-03-25
+
+**Problem**:
+No automated setup for:
+- CloudWatch Container Insights
+- Prometheus/Grafana
+- Alerting rules
+- Dashboards
+
+**Current Workaround**:
+- Manual monitoring via `./scripts/monitor.sh`
+- CloudWatch logs available
+- Basic metrics in AWS console
+
+**Proper Solution**:
+Add to deployment script:
+1. Enable Container Insights
+2. Deploy Prometheus Operator
+3. Deploy Grafana
+4. Configure alerting rules
+5. Create dashboards
+
+**Impact**: Medium - limited observability
+
+**Assigned**: Unassigned  
+**Target**: Next quarter  
+**See**: `.kiro/NEXT-STEPS.md` #7
+
+---
+
+### ISSUE-023: No Automated Backup to S3
+**Severity**: 🟡 Medium
+**Status**: 📋 Backlog
+**Created**: 2026-03-25
+
+**Problem**:
+Backups only local via `./scripts/backup.sh`. No automated S3 backup.
+
+**Current Workaround**:
+- RDS automated backups (7-30 days)
+- Manual backup script available
+- Can manually copy to S3
+
+**Proper Solution**:
+1. Add S3 backup to `backup.sh`
+2. Create CronJob for automated backups
+3. Configure lifecycle policy
+4. Test restore from S3
+
+**Impact**: Medium - limited disaster recovery
+
+**Assigned**: Unassigned  
+**Target**: Next quarter  
+**See**: `.kiro/NEXT-STEPS.md` #8
+
+---
+
+## Resolved Critical Issues (Summary)
+
+All 10 critical/high issues resolved:
+1. ✅ Container image pull failure → ECR integration
+2. ✅ Hardcoded credentials → Secrets Manager support
+3. ✅ No HTTPS/TLS → ACM certificate + ALB
+4. ✅ No automated testing → 45 tests created
+5. ✅ RDS SSL connection → SSL env vars
+6. ✅ NLB creation failure → ALB with proper config
+7. ✅ NodePort security → Security group rules
+8. ✅ Single PostgreSQL → RDS with backups
+9. ✅ No Pod Security Standards → PSS baseline
+10. ✅ Network policy invalid field → Fixed syntax
+
+**See**: `.kiro/COMPLETE-DEPLOYMENT-GUIDE.md` for details
+
+---
+
+## Summary Statistics
+
+**Total Issues**: 23
+- ✅ **Resolved**: 16 (70%)
+- 📋 **Backlog**: 7 (30%)
+- 🔴 **Critical Open**: 0
+- 🟠 **High Open**: 0
+
+**By Severity (Open)**:
+- 🟡 Medium: 5
+- 🟢 Low: 2
+
+**Status**: Production ready, all blockers resolved
+
+---
 - `manifests/03-postgres-deployment.yaml` - Updated to postgres:16.6 from ECR
 - `manifests/06-n8n-deployment.yaml` - Updated to n8n:2.11.0 from ECR
 - `scripts/deploy.sh` - Added ECR defaults and auto-detection
