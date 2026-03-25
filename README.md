@@ -41,7 +41,7 @@ Deploying n8n on Amazon EKS provides scalability, automation, and high reliabili
 
 **PostgreSQL** - Stores workflow data, credentials, and execution history with persistent storage and backup capabilities.
 
-**AWS Load Balancer Controller** - Provides n8n access endpoints via Network Load Balancer for high performance and low latency.
+**AWS Load Balancer** - Provides n8n access endpoints. Use ALB (Application Load Balancer) for HTTPS support with HTTP backends, or NLB (Network Load Balancer) for TCP/TLS passthrough.
 
 **Amazon CloudWatch** - Collects logs and metrics for comprehensive monitoring, alerting, and performance optimization.
 
