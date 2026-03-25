@@ -70,6 +70,10 @@ spec:
             secretKeyRef:
               name: n8n-postgres-rds
               key: password
+        - name: DB_POSTGRESDB_SSL_ENABLED
+          value: "true"
+        - name: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+          value: "false"
         volumeMounts:
         - name: n8n-storage
           mountPath: /home/node/.n8n
