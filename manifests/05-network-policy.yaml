@@ -6,7 +6,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: n8n-simple
+      app: n8n
   policyTypes:
   - Ingress
   - Egress
@@ -41,7 +41,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: postgres-simple
+      app: postgres
   policyTypes:
   - Ingress
   - Egress
@@ -49,7 +49,7 @@ spec:
   - from:
     - podSelector:
         matchLabels:
-          app: n8n-simple
+          app: n8n
     ports:
     - protocol: TCP
       port: 5432

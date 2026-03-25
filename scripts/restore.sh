@@ -81,7 +81,7 @@ validate_namespace "$NAMESPACE"
 
 # Get the postgres pod name
 log_info "Finding PostgreSQL pod..."
-POD=$(get_pod_name "$NAMESPACE" "app=postgres-simple")
+POD=$(get_pod_name "$NAMESPACE" "app=postgres")
 
 if [ -z "$POD" ]; then
     error_exit "PostgreSQL pod not found in namespace '$NAMESPACE'"
@@ -117,10 +117,10 @@ fi
 
 # Scale down n8n to prevent connections
 log_info "Scaling down n8n to prevent active connections..."
-kubectl scale deployment n8n-simple --replicas=0 -n "$NAMESPACE"
+kubectl scale deployment n8n --replicas=0 -n "$NAMESPACE"
 
 log_info "Waiting for n8n pods to terminate..."
-kubectl wait --for=delete pod -l app=n8n-simple -n "$NAMESPACE" --timeout=60s 2>/dev/null || true
+kubectl wait --for=delete pod -l app=n8n -n "$NAMESPACE" --timeout=60s 2>/dev/null || true
 
 # Restore the database
 log_info "Restoring database from backup..."
@@ -132,7 +132,7 @@ if gunzip -c "$BACKUP_FILE" | kubectl exec -i -n "$NAMESPACE" "$POD" -- \
 
     # Scale up n8n
     log_info "Scaling up n8n deployment..."
-    kubectl scale deployment n8n-simple --replicas=1 -n "$NAMESPACE"
+    kubectl scale deployment n8n --replicas=1 -n "$NAMESPACE"
 
     echo ""
     log_success "n8n is being restored and will be available shortly"
@@ -146,7 +146,7 @@ if gunzip -c "$BACKUP_FILE" | kubectl exec -i -n "$NAMESPACE" "$POD" -- \
 else
     log_error "Database restore failed!"
     log_info "Scaling n8n back up..."
-    kubectl scale deployment n8n-simple --replicas=1 -n "$NAMESPACE"
+    kubectl scale deployment n8n --replicas=1 -n "$NAMESPACE"
 
     if [ "$SKIP_BACKUP" = false ] && [ -n "${PRE_RESTORE_BACKUP:-}" ]; then
         echo ""

@@ -285,8 +285,8 @@ fi
 
 # Wait for deployments
 log_info "Waiting for deployments..."
-kubectl wait --for=condition=available --timeout=600s deployment/postgres-simple -n n8n 2>/dev/null || log_warning "PostgreSQL still initializing"
-kubectl wait --for=condition=available --timeout=600s deployment/n8n-simple -n n8n 2>/dev/null || log_warning "n8n still initializing"
+kubectl wait --for=condition=available --timeout=600s deployment/postgres -n n8n 2>/dev/null || log_warning "PostgreSQL still initializing"
+kubectl wait --for=condition=available --timeout=600s deployment/n8n -n n8n 2>/dev/null || log_warning "n8n still initializing"
 
 echo ""
 log_success "Deployment complete!"
@@ -400,10 +400,10 @@ fi
 
 # Wait for deployments
 log_info "Waiting for deployments to be ready (this may take several minutes)..."
-if ! kubectl wait --for=condition=available --timeout=600s deployment/postgres-simple -n n8n 2>/dev/null; then
+if ! kubectl wait --for=condition=available --timeout=600s deployment/postgres -n n8n 2>/dev/null; then
     log_warning "PostgreSQL deployment still initializing"
 fi
-if ! kubectl wait --for=condition=available --timeout=600s deployment/n8n-simple -n n8n 2>/dev/null; then
+if ! kubectl wait --for=condition=available --timeout=600s deployment/n8n -n n8n 2>/dev/null; then
     log_warning "n8n deployment still initializing"
 fi
 

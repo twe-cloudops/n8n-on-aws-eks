@@ -113,8 +113,8 @@ display_monitoring_info() {
     echo "📋 QUICK COMMANDS:"
     print_separator
     echo "  View logs:       ./scripts/get-logs.sh n8n --follow"
-    echo "  Restart:         kubectl rollout restart deployment/n8n-simple -n $NAMESPACE"
-    echo "  Scale:           kubectl scale deployment n8n-simple --replicas=2 -n $NAMESPACE"
+    echo "  Restart:         kubectl rollout restart deployment/n8n -n $NAMESPACE"
+    echo "  Scale:           kubectl scale deployment n8n --replicas=2 -n $NAMESPACE"
     echo "  Create backup:   ./scripts/backup.sh"
     echo ""
 }
