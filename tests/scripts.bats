@@ -21,24 +21,29 @@
     [ "$status" -eq 0 ]
 }
 
-@test "deploy.sh validates prerequisites" {
-    run grep "check_prerequisites" "${BATS_TEST_DIRNAME}/../scripts/deploy.sh"
+@test "deploy-full.sh exists and is executable" {
+    [ -x "${BATS_TEST_DIRNAME}/../scripts/deploy-full.sh" ]
+}
+
+@test "deploy-full.sh supports environment configs" {
+    run grep "ENVIRONMENT" "${BATS_TEST_DIRNAME}/../scripts/deploy-full.sh"
     [ "$status" -eq 0 ]
 }
 
-@test "deploy.sh supports VPC configuration" {
-    run grep "VPC_ID" "${BATS_TEST_DIRNAME}/../scripts/deploy.sh"
-    [ "$status" -eq 0 ]
+@test "create-rds.sh exists and is executable" {
+    [ -x "${BATS_TEST_DIRNAME}/../scripts/create-rds.sh" ]
 }
 
-@test "deploy.sh supports Secrets Manager" {
-    run grep "ENABLE_SECRETS_MANAGER" "${BATS_TEST_DIRNAME}/../scripts/deploy.sh"
-    [ "$status" -eq 0 ]
+@test "create-alb-https.sh exists and is executable" {
+    [ -x "${BATS_TEST_DIRNAME}/../scripts/create-alb-https.sh" ]
 }
 
-@test "deploy.sh supports ACM" {
-    run grep "USE_ACM" "${BATS_TEST_DIRNAME}/../scripts/deploy.sh"
-    [ "$status" -eq 0 ]
+@test "create-efs.sh exists and is executable" {
+    [ -x "${BATS_TEST_DIRNAME}/../scripts/create-efs.sh" ]
+}
+
+@test "create-owner-secret-ssm.sh exists and is executable" {
+    [ -x "${BATS_TEST_DIRNAME}/../scripts/create-owner-secret-ssm.sh" ]
 }
 
 @test "cleanup.sh exists and is executable" {

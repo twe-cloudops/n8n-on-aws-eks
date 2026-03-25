@@ -11,33 +11,23 @@
     [ "$status" -eq 0 ]
 }
 
-@test "postgres deployment is valid YAML" {
-    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/03-postgres-deployment.yaml"
-    [ "$status" -eq 0 ]
-}
-
-@test "postgres deployment has security context" {
-    run grep "securityContext" "${BATS_TEST_DIRNAME}/../manifests/03-postgres-deployment.yaml"
-    [ "$status" -eq 0 ]
-}
-
-@test "postgres runs as non-root" {
-    run grep "runAsNonRoot: true" "${BATS_TEST_DIRNAME}/../manifests/03-postgres-deployment.yaml"
-    [ "$status" -eq 0 ]
-}
-
-@test "n8n deployment is valid YAML" {
-    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment.yaml"
+@test "n8n RDS deployment is valid YAML" {
+    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment-rds.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "n8n deployment has security context" {
-    run grep "securityContext" "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment.yaml"
+    run grep "securityContext" "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment-rds.yaml"
     [ "$status" -eq 0 ]
 }
 
 @test "n8n runs as non-root" {
-    run grep "runAsNonRoot: true" "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment.yaml"
+    run grep "runAsNonRoot: true" "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment-rds.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "n8n deployment uses correct label" {
+    run grep "app: n8n" "${BATS_TEST_DIRNAME}/../manifests/06-n8n-deployment-rds.yaml"
     [ "$status" -eq 0 ]
 }
 
@@ -46,17 +36,32 @@
     [ "$status" -eq 0 ]
 }
 
+@test "service uses correct name" {
+    run grep "name: n8n-service" "${BATS_TEST_DIRNAME}/../manifests/07-n8n-service.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "service selector matches deployment" {
+    run grep "app: n8n" "${BATS_TEST_DIRNAME}/../manifests/07-n8n-service.yaml"
+    [ "$status" -eq 0 ]
+}
+
 @test "HPA manifest is valid YAML" {
     run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/08-hpa.yaml"
     [ "$status" -eq 0 ]
 }
 
-@test "external secrets manifests are valid YAML" {
-    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/secrets/"
+@test "HPA targets correct deployment" {
+    run grep "name: n8n" "${BATS_TEST_DIRNAME}/../manifests/08-hpa.yaml"
     [ "$status" -eq 0 ]
 }
 
-@test "TLS manifests are valid YAML" {
-    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/tls/"
+@test "network policy is valid YAML" {
+    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/05-network-policy.yaml"
+    [ "$status" -eq 0 ]
+}
+
+@test "persistent volumes manifest is valid YAML" {
+    run kubectl apply --dry-run=client -f "${BATS_TEST_DIRNAME}/../manifests/02-persistent-volumes.yaml"
     [ "$status" -eq 0 ]
 }
