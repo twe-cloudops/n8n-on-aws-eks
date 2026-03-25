@@ -101,6 +101,15 @@ applyTo: '**'
   - Solution: Push images to internal ECR
   - Next: Configure deployments to use internal ECR images
 
+- 2026-03-25 11:26: ECR support and bug fixes
+  - Added ECR_ACCOUNT_ID, N8N_IMAGE, POSTGRES_IMAGE env vars
+  - Auto-detect AWS account ID for ECR
+  - Made container images configurable
+  - Updated to Kubernetes 1.35 (1.34 EOL: Dec 2026)
+  - Fixed network policy bug (invalid namespace field)
+  - Updated README with ECR instructions
+  - Commit: 8adf3fc
+
 ## Notes
 - Repository: n8n-on-aws-eks
 - Version: 2.0 (Code Quality Release)

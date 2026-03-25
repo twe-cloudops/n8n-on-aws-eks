@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![AWS EKS](https://img.shields.io/badge/AWS-EKS-orange.svg)](https://aws.amazon.com/eks/)
 [![n8n](https://img.shields.io/badge/n8n-latest-blue.svg)](https://n8n.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 
 **One-click deployment of n8n workflow automation platform on Amazon EKS with enterprise-grade security, multi-region support, and production-ready configuration. Perfect for DevOps teams looking to automate workflows at scale.**
 
@@ -240,10 +240,10 @@ aws ecr get-login-password --region $REGION | \
   ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
 
 # Pull, tag, and push PostgreSQL
-docker pull postgres:15-alpine
-docker tag postgres:15-alpine \
-  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:15-alpine
-docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:15-alpine
+docker pull postgres:16-alpine
+docker tag postgres:16-alpine \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16-alpine
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16-alpine
 
 # Pull, tag, and push n8n
 docker pull n8nio/n8n:latest
@@ -284,7 +284,7 @@ ECR_ACCOUNT_ID=123456789012 ./scripts/deploy.sh
 
 # Deploy with custom ECR images
 N8N_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/n8n:latest \
-POSTGRES_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/postgres:15 \
+POSTGRES_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/postgres:16 \
 ./scripts/deploy.sh
 ```
 
@@ -934,7 +934,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Project Version**: 2.0 (Code Quality Release)
 - **n8n Version**: Latest (automatically updated)
-- **PostgreSQL Version**: 15
+- **PostgreSQL Version**: 16 (compatible with n8n 2.0+, addresses CVE vulnerabilities in 15)
 - **Kubernetes Version**: 1.35 (1.34 EOL: December 2026)
 - **EKS Platform Version**: Latest
 - **Last Updated**: November 2025
