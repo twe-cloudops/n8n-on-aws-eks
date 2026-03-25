@@ -30,7 +30,7 @@ LB_TARGET_TYPE="${LB_TARGET_TYPE:-ip}"
 # Container Image Configuration
 ECR_ACCOUNT_ID="${ECR_ACCOUNT_ID:-993676232205}"
 ECR_REGION="${ECR_REGION:-${REGION}}"
-N8N_IMAGE="${N8N_IMAGE:-993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub/n8nio/n8n:latest}"
+N8N_IMAGE="${N8N_IMAGE:-993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub/n8nio/n8n:2.11.0}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub/library/postgres:16.6}"
 
 # Security Configuration
