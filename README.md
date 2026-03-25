@@ -240,10 +240,10 @@ aws ecr get-login-password --region $REGION | \
   ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
 
 # Pull, tag, and push PostgreSQL
-docker pull postgres:16-bookworm
-docker tag postgres:16-bookworm \
-  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16-bookworm
-docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16-bookworm
+docker pull cgr.dev/chainguard/postgres:latest
+docker tag cgr.dev/chainguard/postgres:latest \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 
 # Pull, tag, and push n8n
 docker pull n8nio/n8n:latest

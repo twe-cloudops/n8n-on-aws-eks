@@ -8,7 +8,7 @@
 
 ## Required Images
 
-1. **PostgreSQL**: `postgres:16-bookworm`
+1. **PostgreSQL**: `cgr.dev/chainguard/postgres:latest`
 2. **n8n**: `n8nio/n8n:latest`
 
 ---
@@ -51,15 +51,15 @@ aws ecr get-login-password --region $REGION --profile $AWS_PROFILE | \
 
 ```bash
 # Pull from Docker Hub
-docker pull postgres:16-bookworm
+docker pull cgr.dev/chainguard/postgres:latest
 
 # Tag for ECR
-docker tag postgres:16-bookworm \
-  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16-bookworm
+docker tag cgr.dev/chainguard/postgres:latest \
+  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 
 # Push to ECR
 docker push \
-  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16-bookworm
+  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 ```
 
 ### n8n Image
@@ -87,10 +87,10 @@ Edit `manifests/03-postgres-deployment.yaml` line 16:
 
 ```yaml
 # Change from:
-image: postgres:16-bookworm
+image: cgr.dev/chainguard/postgres:latest
 
 # To:
-image: 308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16-bookworm
+image: 308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 ```
 
 ### Update n8n Deployment

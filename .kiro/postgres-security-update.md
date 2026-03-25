@@ -69,7 +69,7 @@
 image: ${POSTGRES_IMAGE:-postgres:15-alpine}
 
 # After
-image: ${POSTGRES_IMAGE:-postgres:16-bookworm}
+image: ${POSTGRES_IMAGE:-cgr.dev/chainguard/postgres:latest}
 ```
 
 ### 2. Script Updates
@@ -81,7 +81,7 @@ image: ${POSTGRES_IMAGE:-postgres:16-bookworm}
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:15-alpine}"
 
 # After
-POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16-bookworm}"
+POSTGRES_IMAGE="${POSTGRES_IMAGE:-cgr.dev/chainguard/postgres:latest}"
 ```
 
 ### 3. Documentation Updates
@@ -116,23 +116,23 @@ postgres:15-alpine
 
 **New**:
 ```bash
-postgres:16-bookworm
-{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/n8n/postgres:16-bookworm
+cgr.dev/chainguard/postgres:latest
+{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 ```
 
 ### Push Commands
 
 ```bash
 # Pull PostgreSQL 16
-docker pull postgres:16-bookworm
+docker pull cgr.dev/chainguard/postgres:latest
 
 # Tag for ECR
-docker tag postgres:16-bookworm \
-  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16-bookworm
+docker tag cgr.dev/chainguard/postgres:latest \
+  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 
 # Push to ECR
 docker push \
-  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16-bookworm
+  308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/cgr.dev/chainguard/postgres:latest
 ```
 
 ---
@@ -142,7 +142,7 @@ docker push \
 ### 1. Local Testing
 ```bash
 # Test with PostgreSQL 16
-docker run --rm postgres:16-bookworm postgres --version
+docker run --rm cgr.dev/chainguard/postgres:latest postgres --version
 # Expected: postgres (PostgreSQL) 16.x
 ```
 
@@ -150,7 +150,7 @@ docker run --rm postgres:16-bookworm postgres --version
 ```bash
 # Deploy with n8n 2.11.0 and PostgreSQL 16
 N8N_IMAGE=n8nio/n8n:2.11.0 \
-POSTGRES_IMAGE=postgres:16-bookworm \
+POSTGRES_IMAGE=cgr.dev/chainguard/postgres:latest \
 ./scripts/deploy.sh
 ```
 
@@ -161,7 +161,7 @@ POSTGRES_IMAGE=postgres:16-bookworm \
 
 # Update to PostgreSQL 16
 kubectl set image deployment/postgres-simple \
-  postgres=postgres:16-bookworm -n n8n
+  postgres=cgr.dev/chainguard/postgres:latest -n n8n
 
 # Verify
 kubectl logs -n n8n -l app=postgres-simple --tail=50
@@ -179,7 +179,7 @@ kubectl logs -n n8n -l app=postgres-simple --tail=50
 
 **Recommended Approach**:
 1. Backup database with `./scripts/backup.sh`
-2. Update image to `postgres:16-bookworm`
+2. Update image to `cgr.dev/chainguard/postgres:latest`
 3. Restart deployment
 4. Verify n8n connectivity
 5. Test workflow execution
