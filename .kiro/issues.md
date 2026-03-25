@@ -231,6 +231,43 @@ Backups only local via `./scripts/backup.sh`. No automated S3 backup.
 
 ---
 
+### ISSUE-024: End-to-End Encryption (E2EE) Option
+**Severity**: 🟢 Low
+**Status**: 📋 Backlog
+**Created**: 2026-03-26
+
+**Problem**:
+Current setup terminates SSL at ALB, uses HTTP internally within VPC. Some organizations may require end-to-end encryption.
+
+**Current Setup**:
+- Users → ALB: HTTPS (443) with ACM certificate
+- ALB → n8n Pod: HTTP (NodePort) unencrypted
+- Traffic inside VPC is private (no internet exposure)
+- Standard AWS practice for internal applications
+
+**Why Current Setup is Secure**:
+- ✅ Traffic encrypted over corporate network (Direct Connect)
+- ✅ Traffic inside VPC is private (no internet exposure)
+- ✅ Simpler n8n configuration (no cert management in pod)
+- ✅ ALB handles SSL/TLS complexity
+
+**Alternative Solution (E2EE)**:
+Option 1: NLB with TLS Passthrough
+- Pros: End-to-end encryption
+- Cons: Loses Layer 7 features (path routing, WAF, HTTP metrics, detailed logs)
+
+Option 2: Configure n8n with SSL
+- Pros: End-to-end encryption, keeps ALB features
+- Cons: More complex cert management, cert rotation in pods
+
+**Impact**: Low - current setup is secure and recommended for internal apps
+
+**Assigned**: Unassigned  
+**Target**: Only if compliance requires E2EE  
+**Note**: Consider trade-offs before implementing
+
+---
+
 ## Resolved Critical Issues (Summary)
 
 All 10 critical/high issues resolved:
@@ -251,15 +288,15 @@ All 10 critical/high issues resolved:
 
 ## Summary Statistics
 
-**Total Issues**: 23
-- ✅ **Resolved**: 16 (70%)
-- 📋 **Backlog**: 7 (30%)
+**Total Issues**: 24
+- ✅ **Resolved**: 16 (67%)
+- 📋 **Backlog**: 8 (33%)
 - 🔴 **Critical Open**: 0
 - 🟠 **High Open**: 0
 
 **By Severity (Open)**:
 - 🟡 Medium: 5
-- 🟢 Low: 2
+- 🟢 Low: 3
 
 **Status**: Production ready, all blockers resolved
 
