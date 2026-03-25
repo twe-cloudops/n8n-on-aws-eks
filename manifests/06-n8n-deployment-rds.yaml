@@ -74,6 +74,31 @@ spec:
           value: "true"
         - name: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
           value: "false"
+        # Initial owner account (optional - remove after first setup)
+        - name: N8N_OWNER_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: n8n-owner-credentials
+              key: email
+              optional: true
+        - name: N8N_OWNER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: n8n-owner-credentials
+              key: password
+              optional: true
+        - name: N8N_OWNER_FIRST_NAME
+          valueFrom:
+            secretKeyRef:
+              name: n8n-owner-credentials
+              key: first_name
+              optional: true
+        - name: N8N_OWNER_LAST_NAME
+          valueFrom:
+            secretKeyRef:
+              name: n8n-owner-credentials
+              key: last_name
+              optional: true
         volumeMounts:
         - name: n8n-storage
           mountPath: /home/node/.n8n
