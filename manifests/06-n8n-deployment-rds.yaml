@@ -47,6 +47,8 @@ spec:
           value: "true"
         - name: N8N_VERSION_NOTIFICATIONS_ENABLED
           value: "true"
+        - name: N8N_PERSONALIZATION_ENABLED
+          value: "false"
         - name: HTTP_PROXY
           value: "http://10.122.108.59:8080"
         - name: HTTPS_PROXY
