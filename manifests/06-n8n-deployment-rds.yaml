@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: n8n-simple
+  name: n8n
   namespace: n8n
   labels:
-    app: n8n-simple
+    app: n8n
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: n8n-simple
+      app: n8n
   template:
     metadata:
       labels:
-        app: n8n-simple
+        app: n8n
     spec:
       securityContext:
         runAsNonRoot: true
@@ -22,34 +22,12 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-      - name: volume-permissions
-        image: busybox:1.36
-        command: ["sh", "-c", "chmod 777 /home/node/.n8n"]
-        securityContext:
-          runAsUser: 0
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-            add:
-            - CHOWN
-            - FOWNER
-        volumeMounts:
-        - name: n8n-storage
-          mountPath: /home/node/.n8n
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "100m"
       containers:
       - name: n8n
         image: ${N8N_IMAGE:-993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub/n8nio/n8n:2.11.0}
         ports:
         - containerPort: 5678
+          name: http
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -57,27 +35,6 @@ spec:
             - ALL
           readOnlyRootFilesystem: false
         env:
-        - name: DB_TYPE
-          value: postgresdb
-        - name: DB_POSTGRESDB_HOST
-          value: postgres-service-simple.n8n.svc.cluster.local
-        - name: DB_POSTGRESDB_PORT
-          value: "5432"
-        - name: DB_POSTGRESDB_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_DB
-        - name: DB_POSTGRESDB_USER
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_NON_ROOT_USER
-        - name: DB_POSTGRESDB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_NON_ROOT_PASSWORD
         - name: N8N_SECURE_COOKIE
           value: "false"
         - name: N8N_PROTOCOL
@@ -86,6 +43,33 @@ spec:
           value: "5678"
         - name: N8N_METRICS
           value: "true"
+        - name: DB_TYPE
+          value: postgresdb
+        - name: DB_POSTGRESDB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: n8n-postgres-rds
+              key: host
+        - name: DB_POSTGRESDB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: n8n-postgres-rds
+              key: port
+        - name: DB_POSTGRESDB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: n8n-postgres-rds
+              key: database
+        - name: DB_POSTGRESDB_USER
+          valueFrom:
+            secretKeyRef:
+              name: n8n-postgres-rds
+              key: username
+        - name: DB_POSTGRESDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: n8n-postgres-rds
+              key: password
         volumeMounts:
         - name: n8n-storage
           mountPath: /home/node/.n8n
@@ -104,7 +88,7 @@ spec:
             port: 5678
           initialDelaySeconds: 60
           periodSeconds: 30
-          timeoutSeconds: 10
+          timeoutSeconds: 5
           failureThreshold: 3
         readinessProbe:
           httpGet:

@@ -87,8 +87,7 @@ spec:
           failureThreshold: 3
       volumes:
       - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+        emptyDir: {}
       - name: tmp
         emptyDir: {}
       - name: run
