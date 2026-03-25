@@ -11,6 +11,19 @@ spec:
     requests:
       storage: 20Gi
 ---
+---
+# EFS StorageClass for n8n persistent storage
+# Cost-optimized with Infrequent Access lifecycle
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: ${EFS_ID}  # Replace with actual EFS ID from create-efs.sh
+  directoryPerms: "700"
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -18,8 +31,8 @@ metadata:
   namespace: n8n
 spec:
   accessModes:
-    - ReadWriteOnce
-  storageClassName: gp3
+    - ReadWriteMany  # EFS supports multiple pods
+  storageClassName: efs-sc
   resources:
     requests:
       storage: 10Gi

@@ -141,6 +141,7 @@ spec:
           failureThreshold: 3
       volumes:
       - name: n8n-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: n8n-pvc
       - name: tmp
         emptyDir: {}
