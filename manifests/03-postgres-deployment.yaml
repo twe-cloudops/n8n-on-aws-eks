@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: postgres
-        image: ${POSTGRES_IMAGE:-postgres:16.6}
+        image: ${POSTGRES_IMAGE:-993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub/library/postgres:16.6}
         ports:
         - containerPort: 5432
         securityContext:
