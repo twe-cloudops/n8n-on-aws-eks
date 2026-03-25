@@ -265,6 +265,16 @@ eksctl create cluster -f "$CLUSTER_CONFIG"
 
 success "EKS cluster created"
 
+# Step 1.5: Configure proxy (if needed)
+if [ -n "${PROXY_URL:-}" ]; then
+    print_header "Step 1.5: Configuring Proxy on Nodes"
+    
+    export PROXY_URL
+    "${SCRIPT_DIR}/configure-proxy.sh"
+    
+    success "Proxy configured"
+fi
+
 # Step 2: Create RDS
 print_header "Step 2: Creating RDS PostgreSQL"
 
