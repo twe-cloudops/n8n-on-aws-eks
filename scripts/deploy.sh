@@ -27,6 +27,12 @@ LB_TYPE="${LB_TYPE:-nlb}"
 LB_CROSS_ZONE="${LB_CROSS_ZONE:-true}"
 LB_TARGET_TYPE="${LB_TARGET_TYPE:-ip}"
 
+# Container Image Configuration
+ECR_ACCOUNT_ID="${ECR_ACCOUNT_ID:-}"
+ECR_REGION="${ECR_REGION:-${REGION}}"
+N8N_IMAGE="${N8N_IMAGE:-n8nio/n8n:latest}"
+POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:15-alpine}"
+
 # Security Configuration
 CERT_EMAIL="${CERT_EMAIL:-}"
 ENABLE_SECRETS_MANAGER="${ENABLE_SECRETS_MANAGER:-true}"
@@ -50,6 +56,12 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
     echo "  PRIVATE_SUBNETS           Comma-separated private subnet IDs"
     echo "  PUBLIC_SUBNETS            Comma-separated public subnet IDs"
     echo ""
+    echo "Container Image Options:"
+    echo "  ECR_ACCOUNT_ID            AWS account ID for ECR (auto-detected if empty)"
+    echo "  ECR_REGION                ECR region (default: same as REGION)"
+    echo "  N8N_IMAGE                 n8n image (default: n8nio/n8n:latest)"
+    echo "  POSTGRES_IMAGE            PostgreSQL image (default: postgres:15-alpine)"
+    echo ""
     echo "Load Balancer Options:"
     echo "  LB_SCHEME                 internet-facing or internal (default: internet-facing)"
     echo "  LB_TYPE                   nlb or alb (default: nlb)"
@@ -66,10 +78,27 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
     echo "  ./deploy.sh"
     echo "  VPC_ID=vpc-xxx PRIVATE_SUBNETS=subnet-111,subnet-222 ./deploy.sh"
     echo "  LB_SCHEME=internal ./deploy.sh"
+    echo "  ECR_ACCOUNT_ID=123456789012 N8N_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/n8n:latest ./deploy.sh"
     exit 0
 fi
 
 print_header "🚀 n8n EKS Deployment (Enhanced)"
+
+# Auto-detect ECR account ID if not provided
+if [ -z "$ECR_ACCOUNT_ID" ]; then
+    ECR_ACCOUNT_ID=$(aws sts get-caller-identity --profile "$AWS_PROFILE" --query Account --output text 2>/dev/null || echo "")
+fi
+
+# Build ECR image URLs if ECR_ACCOUNT_ID is set
+if [ -n "$ECR_ACCOUNT_ID" ]; then
+    # Only override if using default images
+    if [ "$N8N_IMAGE" = "n8nio/n8n:latest" ]; then
+        N8N_IMAGE="${ECR_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/n8n/n8n:latest"
+    fi
+    if [ "$POSTGRES_IMAGE" = "postgres:15-alpine" ]; then
+        POSTGRES_IMAGE="${ECR_ACCOUNT_ID}.dkr.ecr.${ECR_REGION}.amazonaws.com/n8n/postgres:15-alpine"
+    fi
+fi
 
 log_info "Configuration:"
 echo "   Cluster: $CLUSTER_NAME"
@@ -77,6 +106,8 @@ echo "   Region: $REGION"
 echo "   VPC: ${VPC_ID:-new}"
 echo "   LB Scheme: $LB_SCHEME"
 echo "   Secrets Manager: $ENABLE_SECRETS_MANAGER"
+echo "   n8n Image: $N8N_IMAGE"
+echo "   PostgreSQL Image: $POSTGRES_IMAGE"
 echo ""
 
 # Check prerequisites
@@ -222,10 +253,13 @@ else
 fi
 
 kubectl apply -f "${MANIFEST_DIR}/02-persistent-volumes.yaml"
-kubectl apply -f "${MANIFEST_DIR}/03-postgres-deployment.yaml"
+
+# Apply deployments with image substitution
+export N8N_IMAGE POSTGRES_IMAGE
+envsubst < "${MANIFEST_DIR}/03-postgres-deployment.yaml" | kubectl apply -f -
 kubectl apply -f "${MANIFEST_DIR}/04-postgres-service.yaml"
 kubectl apply -f "${MANIFEST_DIR}/05-network-policy.yaml"
-kubectl apply -f "${MANIFEST_DIR}/06-n8n-deployment.yaml"
+envsubst < "${MANIFEST_DIR}/06-n8n-deployment.yaml" | kubectl apply -f -
 
 # Apply service with env substitution
 export LB_SCHEME LB_TYPE LB_CROSS_ZONE LB_TARGET_TYPE

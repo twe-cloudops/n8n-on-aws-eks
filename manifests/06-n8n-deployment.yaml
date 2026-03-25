@@ -47,7 +47,7 @@ spec:
             cpu: "100m"
       containers:
       - name: n8n
-        image: n8nio/n8n:latest
+        image: ${N8N_IMAGE:-n8nio/n8n:latest}
         ports:
         - containerPort: 5678
         securityContext:

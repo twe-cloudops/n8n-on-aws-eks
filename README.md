@@ -219,6 +219,38 @@ Before deploying n8n on EKS, ensure you have:
   - VPC and networking resources
   - IAM role creation
   - CloudFormation stack management
+  - ECR access (if using private container registry)
+
+### Optional: Push Images to ECR (for Private Subnets)
+
+If deploying in private subnets without internet access, push container images to ECR first:
+
+```bash
+# Set your AWS account ID and region
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export REGION=us-east-1
+
+# Create ECR repositories
+aws ecr create-repository --repository-name n8n/postgres --region $REGION
+aws ecr create-repository --repository-name n8n/n8n --region $REGION
+
+# Login to ECR
+aws ecr get-login-password --region $REGION | \
+  docker login --username AWS --password-stdin \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+
+# Pull, tag, and push PostgreSQL
+docker pull postgres:15-alpine
+docker tag postgres:15-alpine \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:15-alpine
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:15-alpine
+
+# Pull, tag, and push n8n
+docker pull n8nio/n8n:latest
+docker tag n8nio/n8n:latest \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/n8n:latest
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/n8n:latest
+```
 
 ### 1. Deploy to Any Region
 
@@ -246,6 +278,14 @@ AWS_PROFILE=myprofile REGION=ap-southeast-1 ./scripts/deploy.sh
 
 # All parameters together
 CLUSTER_NAME=production-n8n REGION=us-west-2 AWS_PROFILE=devops ./scripts/deploy.sh
+
+# Deploy with ECR images (for private subnets)
+ECR_ACCOUNT_ID=123456789012 ./scripts/deploy.sh
+
+# Deploy with custom ECR images
+N8N_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/n8n:latest \
+POSTGRES_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/postgres:15 \
+./scripts/deploy.sh
 ```
 
 **New in v2.0:**
@@ -895,7 +935,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Project Version**: 2.0 (Code Quality Release)
 - **n8n Version**: Latest (automatically updated)
 - **PostgreSQL Version**: 15
-- **Kubernetes Version**: 1.32
+- **Kubernetes Version**: 1.35 (1.34 EOL: December 2026)
 - **EKS Platform Version**: Latest
 - **Last Updated**: November 2025
 
