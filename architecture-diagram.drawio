@@ -1,0 +1,126 @@
+<mxfile host="app.diagrams.net" modified="2026-03-26T09:23:00.000Z" agent="5.0" version="21.6.5" etag="drawio" type="device">
+  <diagram name="n8n-aws-architecture" id="n8n-aws-architecture">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Corporate Network -->
+        <mxCell id="corporate-network" value="Corporate Network (10.0.0.0/8)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1080" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Users -->
+        <mxCell id="users" value="Users&#xa;(via Direct Connect)" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="70" width="80" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- AWS VPC -->
+        <mxCell id="vpc" value="AWS VPC (10.119.16.0/20)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="1080" height="560" as="geometry" />
+        </mxCell>
+        
+        <!-- ALB -->
+        <mxCell id="alb" value="Application Load Balancer&#xa;&#xa;• Internal (no public IP)&#xa;• HTTPS:443 → HTTP:NodePort&#xa;• ACM Certificate&#xa;• SG: 10.0.0.0/8:443 + VPC CIDR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="240" width="280" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- EKS Cluster -->
+        <mxCell id="eks" value="Amazon EKS Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="480" height="340" as="geometry" />
+        </mxCell>
+        
+        <!-- n8n Namespace -->
+        <mxCell id="namespace" value="Namespace: n8n" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="420" width="440" height="280" as="geometry" />
+        </mxCell>
+        
+        <!-- n8n Pod -->
+        <mxCell id="n8n-pod" value="n8n Pod&#xa;&#xa;• Image: ECR 993676232205/n8n:2.11.0&#xa;• HTTP_PROXY: 10.122.108.59:8080&#xa;• Port: 5678&#xa;&#xa;Volumes:&#xa;• /home/node/.n8n (EFS PVC)&#xa;  - Custom nodes&#xa;  - Config files&#xa;  - SSL certs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="460" width="400" height="220" as="geometry" />
+        </mxCell>
+        
+        <!-- RDS -->
+        <mxCell id="rds" value="Amazon RDS PostgreSQL&#xa;&#xa;• Engine: PostgreSQL 16.6&#xa;• Instance: db.t3.micro (dev) / db.t3.medium (prod)&#xa;• Multi-AZ: No (dev/test) / Yes (prod)&#xa;• SSL: Required&#xa;• Storage: Workflows, credentials, execution history" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="380" width="480" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- EFS -->
+        <mxCell id="efs" value="Amazon EFS (Elastic File System)&#xa;&#xa;• Storage Class: EFS-SC&#xa;• Access Mode: ReadWriteMany (HA-ready)&#xa;• Lifecycle: 7 days (dev) / 30 days (prod) → IA&#xa;• Cost: ~$0.45/month per environment&#xa;• Encrypted: Yes&#xa;• Mount Targets: All subnets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="540" width="480" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Route53 -->
+        <mxCell id="route53" value="Route53 Private Hosted Zone&#xa;&#xa;• CNAME: n8n-cluster.001.ent-apps-npe-apse2...twecloud.com&#xa;• Target: ALB DNS name" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="240" width="340" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Internet/Proxy -->
+        <mxCell id="internet" value="Internet (via Proxy)&#xa;&#xa;Corporate Proxy: 10.122.108.59:8080&#xa;• n8n community registration&#xa;• Workflow templates&#xa;• Updates and notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="360" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Cost Breakdown -->
+        <mxCell id="costs" value="Cost Breakdown (ap-southeast-2)&#xa;&#xa;Dev Environment (~$113/month):&#xa;• EKS Control Plane: $73.00&#xa;• EC2 (1x t3.small spot): $8.76&#xa;• RDS (db.t3.micro): $15.00&#xa;• ALB: $16.43&#xa;• EFS (10GB with IA): $0.45&#xa;&#xa;Production Environment (~$385/month):&#xa;• EKS Control Plane: $73.00&#xa;• EC2 (3x t3.medium): $175.00&#xa;• RDS (db.t3.medium Multi-AZ): $120.00&#xa;• ALB: $16.43&#xa;• EFS (20GB with IA): $0.90" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="440" y="800" width="680" height="240" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrows -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="users" target="alb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1-label" value="HTTPS:443" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#6c8ebf;" vertex="1" connectable="0" parent="arrow1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="alb" target="n8n-pod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2-label" value="HTTP:NodePort" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#9673a6;" vertex="1" connectable="0" parent="arrow2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1" source="n8n-pod" target="rds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3-label" value="PostgreSQL SSL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#82b366;" vertex="1" connectable="0" parent="arrow3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="n8n-pod" target="efs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4-label" value="NFS (EFS)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#d79b00;" vertex="1" connectable="0" parent="arrow4">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#666666;dashed=1;" edge="1" parent="1" source="n8n-pod" target="internet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow5-label" value="HTTP Proxy" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#666666;" vertex="1" connectable="0" parent="arrow5">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="route53" target="alb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow6-label" value="DNS CNAME" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#9673a6;" vertex="1" connectable="0" parent="arrow6">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
