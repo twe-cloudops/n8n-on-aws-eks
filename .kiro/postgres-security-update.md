@@ -69,7 +69,7 @@
 image: ${POSTGRES_IMAGE:-postgres:15-alpine}
 
 # After
-image: ${POSTGRES_IMAGE:-postgres:16}
+image: ${POSTGRES_IMAGE:-postgres:16.6
 ```
 
 ### 2. Script Updates
@@ -81,7 +81,7 @@ image: ${POSTGRES_IMAGE:-postgres:16}
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:15-alpine}"
 
 # After
-POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16}"
+POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16.6"
 ```
 
 ### 3. Documentation Updates
@@ -127,7 +127,7 @@ postgres:16
 docker pull postgres:16
 
 # Tag for ECR
-docker tag postgres:16 \
+docker tag postgres:16.6\
   308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16
 
 # Push to ECR
@@ -142,7 +142,7 @@ docker push \
 ### 1. Local Testing
 ```bash
 # Test with PostgreSQL 16
-docker run --rm postgres:16 postgres --version
+docker run --rm postgres:16.6postgres --version
 # Expected: postgres (PostgreSQL) 16.x
 ```
 
@@ -150,7 +150,7 @@ docker run --rm postgres:16 postgres --version
 ```bash
 # Deploy with n8n 2.11.0 and PostgreSQL 16
 N8N_IMAGE=n8nio/n8n:2.11.0 \
-POSTGRES_IMAGE=postgres:16 \
+POSTGRES_IMAGE=postgres:16.6\
 ./scripts/deploy.sh
 ```
 
@@ -161,7 +161,7 @@ POSTGRES_IMAGE=postgres:16 \
 
 # Update to PostgreSQL 16
 kubectl set image deployment/postgres-simple \
-  postgres=postgres:16 -n n8n
+  postgres=postgres:16.6-n n8n
 
 # Verify
 kubectl logs -n n8n -l app=postgres-simple --tail=50
@@ -179,7 +179,7 @@ kubectl logs -n n8n -l app=postgres-simple --tail=50
 
 **Recommended Approach**:
 1. Backup database with `./scripts/backup.sh`
-2. Update image to `postgres:16`
+2. Update image to `postgres:16.6
 3. Restart deployment
 4. Verify n8n connectivity
 5. Test workflow execution

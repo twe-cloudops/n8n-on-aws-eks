@@ -241,7 +241,7 @@ aws ecr get-login-password --region $REGION | \
 
 # Pull, tag, and push PostgreSQL
 docker pull postgres:16
-docker tag postgres:16 \
+docker tag postgres:16.6\
   ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16
 docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16
 
@@ -284,7 +284,7 @@ ECR_ACCOUNT_ID=123456789012 ./scripts/deploy.sh
 
 # Deploy with custom ECR images
 N8N_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/n8n:latest \
-POSTGRES_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/postgres:16 \
+POSTGRES_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/postgres:16.6\
 ./scripts/deploy.sh
 ```
 

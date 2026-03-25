@@ -8,7 +8,7 @@
 
 ## Required Images
 
-1. **PostgreSQL**: `postgres:16`
+1. **PostgreSQL**: `postgres:16.6
 2. **n8n**: `n8nio/n8n:latest`
 
 ---
@@ -54,7 +54,7 @@ aws ecr get-login-password --region $REGION --profile $AWS_PROFILE | \
 docker pull postgres:16
 
 # Tag for ECR
-docker tag postgres:16 \
+docker tag postgres:16.6\
   308100948908.dkr.ecr.ap-southeast-2.amazonaws.com/n8n/postgres:16
 
 # Push to ECR
