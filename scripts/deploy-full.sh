@@ -5,13 +5,41 @@ set -euo pipefail
 # Supports dev, test, and prod environments with different configurations
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Load .env file if it exists
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    echo "Loading configuration from .env file..."
+    set -a
+    source "${PROJECT_ROOT}/.env"
+    set +a
+fi
+
 source "${SCRIPT_DIR}/common.sh"
 
-# Default configuration
+# Default configuration (can be overridden by .env)
 ENVIRONMENT="${ENVIRONMENT:-dev}"
 CLUSTER_NAME="${CLUSTER_NAME:-n8n-cluster}"
-REGION="${REGION:-ap-southeast-2}"
+REGION="${AWS_REGION:-ap-southeast-2}"
 NAMESPACE="${NAMESPACE:-n8n}"
+
+# Auto-detect ECR account if not set
+if [ -z "${ECR_ACCOUNT:-}" ]; then
+    ECR_ACCOUNT=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
+fi
+
+# Build image URLs
+if [ "${USE_PUBLIC_IMAGES:-false}" = "true" ]; then
+    N8N_IMAGE="n8nio/n8n:${N8N_IMAGE_TAG:-2.11.0}"
+    POSTGRES_IMAGE="postgres:${POSTGRES_IMAGE_TAG:-16.6}"
+else
+    N8N_IMAGE="${ECR_ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/twe-container-dockerhub/n8nio/n8n:${N8N_IMAGE_TAG:-2.11.0}"
+    POSTGRES_IMAGE="${ECR_ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/twe-container-dockerhub/postgres:${POSTGRES_IMAGE_TAG:-16.6}"
+fi
+
+# Export for envsubst
+export N8N_IMAGE
+export PROXY_URL="${PROXY_URL:-}"
 
 # Show usage
 show_usage() {
@@ -295,8 +323,9 @@ kubectl apply -f "${SCRIPT_DIR}/../manifests/00-namespace.yaml"
 info "Creating owner credentials with random password..."
 "${SCRIPT_DIR}/create-owner-secret-ssm.sh"
 
-info "Deploying n8n..."
-kubectl apply -f "${SCRIPT_DIR}/../manifests/06-n8n-deployment-rds.yaml"
+info "Deploying n8n with configuration..."
+# Use envsubst to replace variables in manifest
+envsubst < "${SCRIPT_DIR}/../manifests/06-n8n-deployment-rds.yaml" | kubectl apply -f -
 kubectl apply -f "${SCRIPT_DIR}/../manifests/07-n8n-service.yaml"
 
 if [ "$ENABLE_HPA" = "true" ]; then

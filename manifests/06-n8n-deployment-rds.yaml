@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: n8n
-        image: 993676232205.dkr.ecr.ap-southeast-2.amazonaws.com/twe-container-dockerhub/n8nio/n8n:2.11.0
+        image: ${N8N_IMAGE}
         ports:
         - containerPort: 5678
           name: http
@@ -50,9 +50,9 @@ spec:
         - name: N8N_PERSONALIZATION_ENABLED
           value: "false"
         - name: HTTP_PROXY
-          value: "http://10.122.108.59:8080"
+          value: "${PROXY_URL}"
         - name: HTTPS_PROXY
-          value: "http://10.122.108.59:8080"
+          value: "${PROXY_URL}"
         - name: NO_PROXY
           value: "localhost,127.0.0.1,169.254.169.254,.internal,.svc,.svc.cluster.local,10.119.16.0/20,.amazonaws.com"
         - name: DB_TYPE

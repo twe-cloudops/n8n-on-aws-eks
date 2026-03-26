@@ -31,7 +31,7 @@ metadata:
   name: n8n-service-simple
   namespace: n8n
   labels:
-    app: n8n-simple
+    app: n8n
   annotations:
     # Load Balancer Type
     service.beta.kubernetes.io/aws-load-balancer-type: "${LB_TYPE:-nlb}"
@@ -86,7 +86,7 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: n8n-simple
+    app: n8n
 ```
 
 ### Step 2: Create Service Configuration Script
@@ -224,7 +224,7 @@ metadata:
   name: n8n-service-internal
   namespace: n8n
   labels:
-    app: n8n-simple
+    app: n8n
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
@@ -238,7 +238,7 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: n8n-simple
+    app: n8n
 ```
 
 **File**: `manifests/services/n8n-service-external.yaml`
@@ -250,7 +250,7 @@ metadata:
   name: n8n-service-external
   namespace: n8n
   labels:
-    app: n8n-simple
+    app: n8n
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
@@ -264,7 +264,7 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: n8n-simple
+    app: n8n
 ```
 
 ---

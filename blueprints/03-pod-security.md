@@ -57,19 +57,19 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-simple
+  name: postgres
   namespace: n8n
   labels:
-    app: postgres-simple
+    app: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-simple
+      app: postgres
   template:
     metadata:
       labels:
-        app: postgres-simple
+        app: postgres
     spec:
       securityContext:
         runAsNonRoot: true
@@ -159,19 +159,19 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: n8n-simple
+  name: n8n
   namespace: n8n
   labels:
-    app: n8n-simple
+    app: n8n
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: n8n-simple
+      app: n8n
   template:
     metadata:
       labels:
-        app: n8n-simple
+        app: n8n
     spec:
       securityContext:
         runAsNonRoot: true
@@ -310,10 +310,10 @@ kubectl get pod -n n8n -o jsonpath='{.items[*].spec.securityContext}'
 kubectl get pod -n n8n -o jsonpath='{.items[*].spec.containers[*].securityContext}'
 
 # Verify non-root user
-kubectl exec -n n8n deployment/n8n-simple -- id
+kubectl exec -n n8n deployment/n8n -- id
 # Expected: uid=1000 gid=1000
 
-kubectl exec -n n8n deployment/postgres-simple -- id
+kubectl exec -n n8n deployment/postgres -- id
 # Expected: uid=999(postgres) gid=999(postgres)
 ```
 
@@ -326,7 +326,7 @@ kubectl port-forward -n n8n service/n8n-service-simple 8080:80
 # Test in browser: http://localhost:8080
 
 # Verify database connectivity
-kubectl exec -n n8n deployment/n8n-simple -- \
+kubectl exec -n n8n deployment/n8n -- \
   nc -zv postgres-service-simple 5432
 ```
 
@@ -340,10 +340,10 @@ If you see permission errors:
 
 ```bash
 # Check volume permissions
-kubectl exec -n n8n deployment/n8n-simple -- ls -la /home/node/.n8n
+kubectl exec -n n8n deployment/n8n -- ls -la /home/node/.n8n
 
 # Fix permissions (if needed)
-kubectl delete pod -n n8n -l app=n8n-simple
+kubectl delete pod -n n8n -l app=n8n
 # Init container will fix permissions on restart
 ```
 
@@ -351,7 +351,7 @@ kubectl delete pod -n n8n -l app=n8n-simple
 
 ```bash
 # Check logs
-kubectl logs -n n8n deployment/postgres-simple
+kubectl logs -n n8n deployment/postgres
 
 # Common issue: PGDATA permissions
 # Solution: Ensure fsGroup is set correctly (999 for postgres)

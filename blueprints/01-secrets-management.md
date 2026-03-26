@@ -245,8 +245,8 @@ stringData:
 EOF
 
 # Restart deployments
-kubectl rollout restart deployment/postgres-simple -n n8n
-kubectl rollout restart deployment/n8n-simple -n n8n
+kubectl rollout restart deployment/postgres -n n8n
+kubectl rollout restart deployment/n8n -n n8n
 ```
 
 ---

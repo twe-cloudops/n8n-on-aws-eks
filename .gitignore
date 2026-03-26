@@ -3,6 +3,9 @@ infrastructure/*-cluster-config.yaml
 !infrastructure/cluster-config.yaml
 !infrastructure/cost-optimized-cluster.yaml
 
+# Environment configuration
+.env
+
 # Backup files
 backups/
 *.sql
