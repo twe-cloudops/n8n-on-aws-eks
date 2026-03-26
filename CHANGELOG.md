@@ -2,6 +2,102 @@
 
 All notable changes to the n8n-on-aws-eks project will be documented in this file.
 
+## [2.2.0] - 2026-03-26
+
+### Added
+
+#### Production-Ready Deployment
+- **Environment-Based Deployment**: Dev, test, and prod configurations with cost optimization
+- **EFS Persistent Storage**: Cost-optimized with Infrequent Access lifecycle policies
+- **Secure Credentials**: Auto-generated passwords stored in AWS SSM/Secrets Manager
+- **ALB with HTTPS**: Automated ALB creation with ACM certificates and Route53 DNS
+- **RDS PostgreSQL**: Replaced containerized PostgreSQL with managed RDS
+- **Proxy Support**: Corporate proxy integration for internet access
+- **Configuration Management**: .env file for easy configuration across environments
+
+#### New Scripts
+- `deploy-full.sh`: Complete automated deployment with environment selection
+- `create-alb-https.sh`: ALB + HTTPS + DNS automation
+- `create-efs.sh`: EFS with cost-optimized lifecycle policies
+- `create-rds.sh`: RDS PostgreSQL creation
+- `create-owner-secret.sh`: Secrets Manager integration
+- `create-owner-secret-ssm.sh`: SSM Parameter Store integration (recommended)
+- `configure-proxy.sh`: Proxy configuration for nodes
+
+#### Documentation
+- Complete deployment guide with all fixes documented
+- EFS implementation guide with cost optimization
+- Owner credentials security documentation
+- Post-deployment steps guide
+- Architecture diagram (Draw.io format)
+- 26 comprehensive documentation files
+
+### Changed
+
+#### Critical Fixes (10)
+1. **LoadBalancer → NodePort + ALB**: Fixed Classic LB with public IPs issue
+2. **NLB → ALB**: Switched to ALB for proper HTTPS → HTTP support
+3. **Image Variables**: Fixed Kubernetes variable substitution
+4. **Service Selector**: Fixed selector mismatch (app: n8n-simple → app: n8n)
+5. **Security Group**: Added corporate network CIDR (10.0.0.0/8)
+6. **RDS SSL**: Added SSL connection configuration
+7. **n8n Registration**: Added proxy for community registration
+8. **ECR Images**: Use internal ECR for private subnet deployments
+9. **Network Policy**: Fixed invalid namespace field
+10. **PostgreSQL**: Upgraded from 15-alpine to 16.6 for security
+
+#### Standardization
+- Renamed all deployments from "n8n-simple" to "n8n"
+- Renamed service from "n8n-service-simple" to "n8n-service"
+- Updated all scripts and documentation for consistent naming
+- Removed stale manifests (postgres pod, old n8n deployment)
+- Cleaned up unused manifest directories (secrets/, services/, tls/)
+
+#### Configuration
+- Made ECR account configurable via .env
+- Made proxy URL configurable via .env
+- Auto-detect AWS account for ECR if not specified
+- Support for public Docker Hub images as fallback
+
+### Fixed
+
+#### Security
+- Removed hardcoded passwords from repository
+- Auto-generate random passwords during deployment
+- Store credentials in AWS SSM/Secrets Manager
+- Enable SSL for RDS connections
+- Add Pod Security Standards to namespace
+
+#### Deployment
+- Fixed service selector to match deployment labels
+- Fixed ALB security group for corporate network access
+- Fixed image pulls in private subnets using ECR
+- Fixed network policy syntax errors
+- Updated tests to match current deployment structure
+
+### Removed
+- Deleted containerized PostgreSQL manifests (using RDS now)
+- Removed unused External Secrets Operator manifests
+- Removed unused cert-manager TLS manifests
+- Removed account-specific infrastructure configs
+- Archived 17 old documentation files
+
+### Documentation
+- Updated README with current architecture
+- Added comprehensive deployment guide
+- Documented all 10 critical fixes
+- Added cost breakdown by environment
+- Created architecture diagram
+- Expanded CONTRIBUTING.md with proper guidelines
+- Expanded SECURITY.md with security policy
+
+### Cost Optimization
+- Dev environment: ~$113/month (spot instances, minimal resources)
+- Test environment: ~$200/month (standard instances, 7-day backups)
+- Prod environment: ~$385/month (Multi-AZ, 30-day backups, auto-scaling)
+- EFS Infrequent Access: 87.5% storage cost savings
+- SSM Parameter Store: ~$5/year savings vs Secrets Manager
+
 ## [2.0.0] - 2024-12-01
 
 ### Added

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![AWS EKS](https://img.shields.io/badge/AWS-EKS-orange.svg)](https://aws.amazon.com/eks/)
 [![n8n](https://img.shields.io/badge/n8n-latest-blue.svg)](https://n8n.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 
 **One-click deployment of n8n workflow automation platform on Amazon EKS with enterprise-grade security, multi-region support, and production-ready configuration. Perfect for DevOps teams looking to automate workflows at scale.**
 
@@ -41,7 +41,7 @@ Deploying n8n on Amazon EKS provides scalability, automation, and high reliabili
 
 **PostgreSQL** - Stores workflow data, credentials, and execution history with persistent storage and backup capabilities.
 
-**AWS Load Balancer Controller** - Provides n8n access endpoints via Network Load Balancer for high performance and low latency.
+**AWS Load Balancer** - Provides n8n access endpoints. Use ALB (Application Load Balancer) for HTTPS support with HTTP backends, or NLB (Network Load Balancer) for TCP/TLS passthrough.
 
 **Amazon CloudWatch** - Collects logs and metrics for comprehensive monitoring, alerting, and performance optimization.
 
@@ -219,6 +219,38 @@ Before deploying n8n on EKS, ensure you have:
   - VPC and networking resources
   - IAM role creation
   - CloudFormation stack management
+  - ECR access (if using private container registry)
+
+### Optional: Push Images to ECR (for Private Subnets)
+
+If deploying in private subnets without internet access, push container images to ECR first:
+
+```bash
+# Set your AWS account ID and region
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export REGION=us-east-1
+
+# Create ECR repositories
+aws ecr create-repository --repository-name n8n/postgres --region $REGION
+aws ecr create-repository --repository-name n8n/n8n --region $REGION
+
+# Login to ECR
+aws ecr get-login-password --region $REGION | \
+  docker login --username AWS --password-stdin \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+
+# Pull, tag, and push PostgreSQL
+docker pull postgres:16
+docker tag postgres:16.6\
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/postgres:16
+
+# Pull, tag, and push n8n
+docker pull n8nio/n8n:latest
+docker tag n8nio/n8n:latest \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/n8n:latest
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/n8n/n8n:latest
+```
 
 ### 1. Deploy to Any Region
 
@@ -246,6 +278,14 @@ AWS_PROFILE=myprofile REGION=ap-southeast-1 ./scripts/deploy.sh
 
 # All parameters together
 CLUSTER_NAME=production-n8n REGION=us-west-2 AWS_PROFILE=devops ./scripts/deploy.sh
+
+# Deploy with ECR images (for private subnets)
+ECR_ACCOUNT_ID=123456789012 ./scripts/deploy.sh
+
+# Deploy with custom ECR images
+N8N_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/n8n:latest \
+POSTGRES_IMAGE=123456789012.dkr.ecr.us-east-1.amazonaws.com/postgres:16.6\
+./scripts/deploy.sh
 ```
 
 **New in v2.0:**
@@ -281,7 +321,7 @@ CLUSTER_NAME=production-n8n REGION=us-west-2 AWS_PROFILE=devops ./scripts/deploy
 
 ```bash
 # Get LoadBalancer URL (shown in deployment output)
-kubectl get service n8n-service-simple -n n8n
+kubectl get service n8n-service -n n8n
 
 # Or use monitor script for full status
 ./scripts/monitor.sh
@@ -380,7 +420,7 @@ Enhance security for production use:
 
 ```bash
 # Enable HTTPS (recommended for production)
-kubectl patch deployment n8n-simple -n n8n -p '{"spec":{"template":{"spec":{"containers":[{"name":"n8n","env":[{"name":"N8N_SECURE_COOKIE","value":"true"},{"name":"N8N_PROTOCOL","value":"https"}]}]}}}}'
+kubectl patch deployment n8n -n n8n -p '{"spec":{"template":{"spec":{"containers":[{"name":"n8n","env":[{"name":"N8N_SECURE_COOKIE","value":"true"},{"name":"N8N_PROTOCOL","value":"https"}]}]}}}}'
 
 # Set up custom domain (requires certificate)
 # Update service to use custom domain and TLS
@@ -498,26 +538,26 @@ kubectl top nodes
 
 ```bash
 # Scale application
-kubectl scale deployment n8n-simple --replicas=3 -n n8n
+kubectl scale deployment n8n --replicas=3 -n n8n
 
 # Update n8n version
-kubectl set image deployment/n8n-simple n8n=n8nio/n8n:1.0.0 -n n8n
+kubectl set image deployment/n8n n8n=n8nio/n8n:1.0.0 -n n8n
 
 # Restart deployment
-kubectl rollout restart deployment/n8n-simple -n n8n
+kubectl rollout restart deployment/n8n -n n8n
 ```
 
 ### Manual Database Operations
 
 ```bash
 # Connect to PostgreSQL (for manual operations)
-kubectl exec -it deployment/postgres-simple -n n8n -- psql -U n8nuser -d n8n
+kubectl exec -it deployment/postgres -n n8n -- psql -U n8nuser -d n8n
 
 # Manual backup (use backup.sh script instead)
-kubectl exec deployment/postgres-simple -n n8n -- pg_dump -U n8nuser n8n > n8n-backup-$(date +%Y%m%d).sql
+kubectl exec deployment/postgres -n n8n -- pg_dump -U n8nuser n8n > n8n-backup-$(date +%Y%m%d).sql
 
 # Manual restore (use restore.sh script instead)
-kubectl exec -i deployment/postgres-simple -n n8n -- psql -U n8nuser -d n8n < n8n-backup.sql
+kubectl exec -i deployment/postgres -n n8n -- psql -U n8nuser -d n8n < n8n-backup.sql
 ```
 
 ---
@@ -547,7 +587,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: n8n-simple
+      app: n8n
   policyTypes:
   - Ingress
   - Egress
@@ -575,7 +615,7 @@ The deployment includes comprehensive health monitoring:
 
 ```bash
 # Enable metrics collection
-kubectl port-forward service/n8n-service-simple 8080:80 -n n8n
+kubectl port-forward service/n8n-service 8080:80 -n n8n
 
 # Access metrics endpoint
 curl http://localhost:8080/metrics
@@ -585,10 +625,10 @@ curl http://localhost:8080/metrics
 
 ```bash
 # Stream logs from all n8n pods
-kubectl logs -f -l app=n8n-simple -n n8n
+kubectl logs -f -l app=n8n -n n8n
 
 # Export logs to file
-kubectl logs deployment/n8n-simple -n n8n > n8n-logs-$(date +%Y%m%d).log
+kubectl logs deployment/n8n -n n8n > n8n-logs-$(date +%Y%m%d).log
 ```
 
 ---
@@ -659,12 +699,12 @@ REGION=us-east-1 ./scripts/deploy-cost-optimized.sh
 #### 2. Scheduled Scaling (Additional 40% savings)
 ```bash
 # Scale down during off-hours (nights/weekends)
-kubectl scale deployment n8n-simple --replicas=0 -n n8n
-kubectl scale deployment postgres-simple --replicas=0 -n n8n
+kubectl scale deployment n8n --replicas=0 -n n8n
+kubectl scale deployment postgres --replicas=0 -n n8n
 
 # Scale up during business hours
-kubectl scale deployment n8n-simple --replicas=1 -n n8n
-kubectl scale deployment postgres-simple --replicas=1 -n n8n
+kubectl scale deployment n8n --replicas=1 -n n8n
+kubectl scale deployment postgres --replicas=1 -n n8n
 ```
 - **Potential monthly cost**: $60-75/month
 
@@ -742,16 +782,16 @@ kubectl describe resourcequota n8n-quota -n n8n
 #### Database Connection Issues
 ```bash
 # Test database connectivity
-kubectl exec -it deployment/n8n-simple -n n8n -- nc -zv postgres-service-simple 5432
+kubectl exec -it deployment/n8n -n n8n -- nc -zv postgres-service-simple 5432
 
 # Check database logs
-kubectl logs deployment/postgres-simple -n n8n --tail=50
+kubectl logs deployment/postgres -n n8n --tail=50
 ```
 
 #### LoadBalancer Issues
 ```bash
 # Check service status
-kubectl describe service n8n-service-simple -n n8n
+kubectl describe service n8n-service -n n8n
 
 # Check AWS Load Balancer Controller
 kubectl get pods -n kube-system | grep aws-load-balancer
@@ -761,10 +801,10 @@ kubectl get pods -n kube-system | grep aws-load-balancer
 
 ```bash
 # Increase resources for high workload
-kubectl patch deployment n8n-simple -n n8n -p '{"spec":{"template":{"spec":{"containers":[{"name":"n8n","resources":{"requests":{"cpu":"500m","memory":"1Gi"},"limits":{"cpu":"2000m","memory":"2Gi"}}}]}}}}'
+kubectl patch deployment n8n -n n8n -p '{"spec":{"template":{"spec":{"containers":[{"name":"n8n","resources":{"requests":{"cpu":"500m","memory":"1Gi"},"limits":{"cpu":"2000m","memory":"2Gi"}}}]}}}}'
 
 # Enable horizontal pod autoscaling
-kubectl autoscale deployment n8n-simple --cpu-percent=70 --min=2 --max=10 -n n8n
+kubectl autoscale deployment n8n --cpu-percent=70 --min=2 --max=10 -n n8n
 ```
 
 ---
@@ -850,7 +890,7 @@ aws elbv2 describe-load-balancers --region=$REGION --profile=$AWS_PROFILE
 
 ```bash
 # Multi-AZ deployment with pod anti-affinity
-kubectl patch deployment n8n-simple -n n8n -p '{"spec":{"template":{"spec":{"affinity":{"podAntiAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"podAffinityTerm":{"labelSelector":{"matchExpressions":[{"key":"app","operator":"In","values":["n8n-simple"]}]},"topologyKey":"kubernetes.io/hostname"}}]}}}}}}'
+kubectl patch deployment n8n -n n8n -p '{"spec":{"template":{"spec":{"affinity":{"podAntiAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"podAffinityTerm":{"labelSelector":{"matchExpressions":[{"key":"app","operator":"In","values":["n8n"]}]},"topologyKey":"kubernetes.io/hostname"}}]}}}}}}'
 ```
 
 ---
@@ -894,8 +934,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Project Version**: 2.0 (Code Quality Release)
 - **n8n Version**: Latest (automatically updated)
-- **PostgreSQL Version**: 15
-- **Kubernetes Version**: 1.32
+- **PostgreSQL Version**: 16 (compatible with n8n 2.0+, addresses CVE vulnerabilities in 15)
+- **Kubernetes Version**: 1.35 (1.34 EOL: December 2026)
 - **EKS Platform Version**: Latest
 - **Last Updated**: November 2025
 

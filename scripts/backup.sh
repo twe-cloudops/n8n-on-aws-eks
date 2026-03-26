@@ -39,7 +39,7 @@ validate_namespace "$NAMESPACE"
 
 # Get the postgres pod name
 log_info "Finding PostgreSQL pod..."
-POD=$(get_pod_name "$NAMESPACE" "app=postgres-simple")
+POD=$(get_pod_name "$NAMESPACE" "app=postgres")
 
 if [ -z "$POD" ]; then
     error_exit "PostgreSQL pod not found in namespace '$NAMESPACE'"

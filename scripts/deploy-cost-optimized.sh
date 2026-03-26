@@ -138,19 +138,19 @@ cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-simple
+  name: postgres
   namespace: n8n
   labels:
-    app: postgres-simple
+    app: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-simple
+      app: postgres
   template:
     metadata:
       labels:
-        app: postgres-simple
+        app: postgres
     spec:
       containers:
       - name: postgres
@@ -185,7 +185,7 @@ kubectl apply -f "${MANIFEST_DIR}/04-postgres-service.yaml" || error_exit "Faile
 
 # Wait for PostgreSQL to be ready
 log_info "Waiting for PostgreSQL to be ready..."
-if ! kubectl wait --for=condition=available --timeout=300s deployment/postgres-simple -n n8n 2>/dev/null; then
+if ! kubectl wait --for=condition=available --timeout=300s deployment/postgres -n n8n 2>/dev/null; then
     log_warning "PostgreSQL deployment still initializing"
 fi
 
@@ -195,19 +195,19 @@ cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: n8n-simple
+  name: n8n
   namespace: n8n
   labels:
-    app: n8n-simple
+    app: n8n
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: n8n-simple
+      app: n8n
   template:
     metadata:
       labels:
-        app: n8n-simple
+        app: n8n
     spec:
       containers:
       - name: n8n
@@ -269,7 +269,7 @@ kubectl apply -f "${MANIFEST_DIR}/07-n8n-service.yaml" || error_exit "Failed to 
 
 # Wait for n8n to be ready
 log_info "Waiting for n8n to be ready..."
-if ! kubectl wait --for=condition=available --timeout=600s deployment/n8n-simple -n n8n 2>/dev/null; then
+if ! kubectl wait --for=condition=available --timeout=600s deployment/n8n -n n8n 2>/dev/null; then
     log_warning "n8n deployment still initializing"
 fi
 

@@ -1,0 +1,32 @@
+# Account-specific configurations
+infrastructure/*-cluster-config.yaml
+!infrastructure/cluster-config.yaml
+!infrastructure/cost-optimized-cluster.yaml
+
+# Environment configuration
+.env
+
+# Backup files
+backups/
+*.sql
+*.sql.gz
+
+# Temporary files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Secrets (just in case)
+*.pem
+*.key
+secrets.yaml
